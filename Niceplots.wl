@@ -2,6 +2,7 @@
 
 BeginPackage["Niceplots`"]
 colorGradToIndexed::usage = "Convert gradient from COLORDATA to indexed color list for plotting purposes";
+colorGradient::usage = "Generate a list of colors by blending a list of colors";
 blueredcolorPMfunc::usage = "Color function Blue > White > Red corresponding to positive / negative";
 jet::usage = "Matlab style color function";
 
@@ -17,8 +18,7 @@ SetOptions[DensityPlot,BaseStyle->{FontFamily->"Helvetica",FontSize->14},ImageSi
 
 
 
-blueredcolorPMfunc[zval_,max_] := Module[
-{},
+blueredcolorPMfunc[zval_,max_] := 
 Which[0<(zval/max)<1,
 Hue[1.0,Abs[(zval/max)],0.9],
 (zval/max)>=1,
@@ -26,13 +26,15 @@ Hue[1.0,1,0.9],
 -1<(zval/max)<0,
 Hue[0.63,Abs[(zval/max)],0.9],
 (zval/max)<=-1,
-Hue[0.63,1,0.9]
-]
-]
+Hue[0.63,1,0.9]]
 
 jet[u_?NumericQ]:=Blend[{{0,RGBColor[0,0,9/16]},{1/9,Blue},{23/63,Cyan},{13/21,Yellow},{47/63,Orange},{55/63,Red},{1,RGBColor[1/2,0,0]}},u]/;0<=u<=1
 
-colorGradToIndexed[name_,pts_]:=Table[ColorData[name][i/pts],{i,1,pts}]
+colorGradToIndexed[name_,pts_?NumericQ]:=Table[ColorData[name][i/(pts-1)],{i,0,pts-1}]/;1<=pts
+
+colorGradient[colorList_,pts_?NumericQ]:=Table[Blend[colorList,u/(pts-1)],{u,0,pts-1}]/;1<=pts
+
+cray[name_]:=ColorData["Crayola"][name]
 
 
 EndPackage[]
