@@ -7,6 +7,7 @@ importS2pCSVlog::usage = "Import CSV in RI format as {FREQ,10Log10[S21],\[Phi]}"
 NLMfitS21scLogmag::usage = "Fit side-coupled resonance transmission with fano asymmetry to data in tuples of {freq, \!\(\*SubscriptBox[\(S\), \(21\)]\)(dB)}. Returns plot and fit parameter table (slow)";
 NLMfitS21scLogmagQuiet::usage = "Fit side-coupled resonance transmission with fano asymmetry to data in tuples of {freq, \!\(\*SubscriptBox[\(S\), \(21\)]\)(dB)}. Returns parameters only (fast)";
 
+
 importS2p[dir_]:=Module[{allData,data},
 (*return {FREQ,10Log10[S21],\[Phi]}*)
 data = Select[Import[dir,"Table"],NumberQ[#[[1]]]&];
@@ -54,55 +55,53 @@ freqFactor = If[allData[[1,5]]>1.*^8,1.*^-9,1.];
 {allData[[1]]*freqFactor,allData[[2+2*index]]+I allData[[3+2*index]]}
 ]
 
+
 NLMfitS21scLogmag[localdata_] := Module[{A0est,minPt,\[Sigma],Qest,Qist,weights,model},
-(*Fit side-coupled resonance measurement to data in tuples of {freq, Subscript[S, 21](dB)}*)
+(*Fit side-coupled resonance measurement to transmission data in tuples of {freq, Subscript[S, 21](dB)}*)
 A0est = Mean[{First[localdata] [[2]],Last[localdata][[2]]}];
 minPt = First @ SortBy[ localdata,#[[2]]&];
 \[Sigma] = 2(Select[localdata,#[[2]]<Max[A0est - 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
 Qest =minPt[[1]]/\[Sigma];
 Qist = 10^(1/20 (A0est-minPt[[2]])) (Qest-10^((-A0est+minPt[[2]])/20) Qest);
-model = NonlinearModelFit[localdata,10Log10[Abs[(Qe + 2 I Qi Qe ((\[Nu] - \[Nu]0-\[Delta]\[Nu])/(\[Nu]0+\[Delta]\[Nu])+\[Delta]\[Nu]/\[Nu]0))/(Qi + Qe + 2 I Qi Qe (\[Nu] - \[Nu]0-\[Delta]\[Nu])/(\[Nu]0+\[Delta]\[Nu]))]^2]+A0,{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Delta]\[Nu],0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
-Row[{Show[ListPlot[localdata[[;;;;10]],PlotRange->All,Joined-> True,FrameLabel->{"\[Nu]","\!\(\*SubscriptBox[\(S\), \(21\)]\)(dB)"}],Plot[Normal[model],{\[Nu],localdata\[Transpose][[1]]//Min,localdata\[Transpose][[1]]//Max},PlotStyle->{Red},PlotRange->All]],
+model = NonlinearModelFit[localdata,10Log10[Abs[1- E^(I \[Phi])/Cos[\[Phi]] Qi/(Qe +Qi + 2 I Qe Qi (\[Nu]-\[Nu]0)/\[Nu]0)]^2]+A0,{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Phi],0.0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
+Row[{Show[ListPlot[localdata[[;;;;2]],PlotRange->All,Joined-> True,FrameLabel->{"\[Nu]","\!\(\*SubscriptBox[\(S\), \(21\)]\)(dB)"}],Plot[Normal[model],{\[Nu],localdata\[Transpose][[1]]//Min,localdata\[Transpose][[1]]//Max},PlotStyle->{Red},PlotRange->All]],
 model["ParameterTable"],TableForm[{{minPt[[1]]},{Qest},{Qist},{0.0},{A0est}},TableHeadings->{{"\[Nu]0","\!\(\*SubscriptBox[\(Q\), \(e\)]\)","\!\(\*SubscriptBox[\(Q\), \(i\)]\)","\[Delta]\[Nu]","A0"},{"Crude Estimates"}}]},"       "]
 ]
 
 NLMfitS21scLogmagQuiet[localdata_] := Module[{A0est,minPt,\[Sigma],Qest,Qist,weights,model},
-(*Fit side-coupled resonance measurement to data in tuples of {freq, Subscript[S, 21](dB)}*)
+(*Fit side-coupled resonance measurement to transmission data in tuples of {freq, Subscript[S, 21](dB)}*)
 A0est = Mean[{First[localdata] [[2]],Last[localdata][[2]]}];
 minPt = First @ SortBy[ localdata,#[[2]]&];
 \[Sigma] = 2(Select[localdata,#[[2]]<Max[A0est - 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
 Qest =minPt[[1]]/\[Sigma];
 Qist = 10^(1/20 (A0est-minPt[[2]])) (Qest-10^((-A0est+minPt[[2]])/20) Qest);
-model = NonlinearModelFit[localdata,10Log10[Abs[(Qe + 2 I Qi Qe ((\[Nu] - \[Nu]0-\[Delta]\[Nu])/(\[Nu]0+\[Delta]\[Nu])+\[Delta]\[Nu]/\[Nu]0))/(Qi + Qe + 2 I Qi Qe (\[Nu] - \[Nu]0-\[Delta]\[Nu])/(\[Nu]0+\[Delta]\[Nu]))]^2]+A0,{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Delta]\[Nu],0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
+model = NonlinearModelFit[localdata,10Log10[Abs[1- E^(I \[Phi])/Cos[\[Phi]] Qi/(Qe +Qi + 2 I Qe Qi (\[Nu]-\[Nu]0)/\[Nu]0)]^2]+A0,{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Phi],0.0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
 model["BestFitParameters"]
 ]
 
-NLMfitS11dcLogmag[localdata_] := Module[{A0est,maxPt,\[Sigma],Qest,Qist,weights,model},
-(*Fit side-coupled resonance measurement to data in tuples of {freq, Subscript[S, 21](dB)}*)
+
+NLMfitS11dcLogmag[localdata_,overCoupled_:False] := Module[{A0est,minPt,\[Sigma],Qest,Qist,weights,model},
+(*Fit direct-coupled resonance measurement to reflection data in tuples of {freq, Subscript[S, 21](dB)}*)
 A0est = Mean[{First[localdata] [[2]],Last[localdata][[2]]}];
-maxPt = Last @ SortBy[ localdata,#[[2]]&];
-\[Sigma] = 2(Select[localdata,#[[2]]>Min[A0est + 3,Mean[{A0est,maxPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
-Qest =maxPt[[1]]/\[Sigma];
-Qist = Qest;
-model = NonlinearModelFit[localdata,10Log10[Abs[B0 *Exp[-I \[Phi]]+A0*(1- (Qi - 2 I Qi Qe \[Delta]\[Nu]/\[Nu]0)/((Qi+Qe) + 2 I Qi Qe (\[Nu]-\[Nu]0)/\[Nu]0))]^2],{{\[Nu]0,maxPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Delta]\[Nu],0},{A0,0.5},{B0,1.5},{\[Phi],\[Pi]}},\[Nu],Weights->(1+E^(-(#-maxPt[[1]])^2/(2 \[Sigma]^2))&)];
+minPt = First @ SortBy[ localdata,#[[2]]&];
+\[Sigma] = 2(Select[localdata,#[[2]]<Max[A0est - 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
+Qest =minPt[[1]]/\[Sigma];
+Qist = If[overCoupled,Qest ((1 + 10^((-A0est+minPt[[2]])/20))/(1 - 10^((-A0est+minPt[[2]])/20))),Qest ((1 - 10^((-A0est+minPt[[2]])/20))/(1 + 10^((-A0est+minPt[[2]])/20)))];
+model = NonlinearModelFit[localdata,10Log10[Abs[1-(2 Qi)/(Qe E^(-I \[Phi]) + Qi +2I Qe E^(-I \[Phi]) Qi (\[Nu]-\[Nu]0)/\[Nu]0)]^2],{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Phi],0.0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
 Row[{Show[ListPlot[localdata[[;;;;10]],PlotRange->All,Joined-> True,FrameLabel->{"\[Nu]","\!\(\*SubscriptBox[\(S\), \(21\)]\)(dB)"}],Plot[Normal[model],{\[Nu],localdata\[Transpose][[1]]//Min,localdata\[Transpose][[1]]//Max},PlotStyle->{Red},PlotRange->All]],
-model["ParameterTable"],TableForm[{{maxPt[[1]]},{Qest},{Qist},{0.0},{A0est}},TableHeadings->{{"\[Nu]0","\!\(\*SubscriptBox[\(Q\), \(e\)]\)","\!\(\*SubscriptBox[\(Q\), \(i\)]\)","\[Delta]\[Nu]","A0"},{"Crude Estimates"}}]},"       "]
+model["ParameterTable"],TableForm[{{minPt[[1]]},{Qest},{Qist},{0.0},{A0est}},TableHeadings->{{"\[Nu]0","\!\(\*SubscriptBox[\(Q\), \(e\)]\)","\!\(\*SubscriptBox[\(Q\), \(i\)]\)","\[Delta]\[Nu]","A0"},{"Crude Estimates"}}]},"       "]
 ]
 
-NLMfitS11dcLogmagQuiet[localdata_] := Module[{A0est,maxPt,\[Sigma],Qest,Qist,weights,model},
-(*Fit side-coupled resonance measurement to data in tuples of {freq, Subscript[S, 21](dB)}*)
+NLMfitS11dcLogmagQuiet[localdata_,overCoupled_:True] := Module[{A0est,minPt,\[Sigma],Qest,Qist,weights,model},
+(*Fit direct-coupled resonance measurement to reflection data in tuples of {freq, Subscript[S, 21](dB)}*)
 A0est = Mean[{First[localdata] [[2]],Last[localdata][[2]]}];
-maxPt = Last @ SortBy[ localdata,#[[2]]&];
-\[Sigma] = 2(Select[localdata,#[[2]]>Min[A0est + 3,Mean[{A0est,maxPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
-Qest =maxPt[[1]]/\[Sigma];
-Qist = Qest;
-model = NonlinearModelFit[localdata,10Log10[Abs[B0 *Exp[-I \[Phi]]+A0(1- (Qi - 2 I Qi Qe \[Delta]\[Nu]/\[Nu]0)/((Qi+Qe) + 2 I Qi Qe (\[Nu]-\[Nu]0)/\[Nu]0))]^2],{{\[Nu]0,maxPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Delta]\[Nu],0},{A0,0.5},{B0,1.5},{\[Phi],\[Pi]}},\[Nu],Weights->(1+E^(-(#-maxPt[[1]])^2/(2 \[Sigma]^2))&)];
+minPt = Last @ SortBy[ localdata,#[[2]]&];
+\[Sigma] = 2(Select[localdata,#[[2]]>Min[A0est + 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
+Qest =minPt[[1]]/\[Sigma];
+Qist = If[overCoupled,Qest ((1 + 10^((-A0est+minPt[[2]])/20))/(1 - 10^((-A0est+minPt[[2]])/20))),Qest ((1 - 10^((-A0est+minPt[[2]])/20))/(1 + 10^((-A0est+minPt[[2]])/20)))];
+model = NonlinearModelFit[localdata,10Log10[Abs[1-(2 Qi)/(Qe E^(-I \[Phi]) + Qi +2I Qe E^(-I \[Phi]) Qi (\[Nu]-\[Nu]0)/\[Nu]0)]^2],{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Phi],0.0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
 model["BestFitParameters"]
 ]
+
+
 EndPackage[]
-
-
-
-
-
-
