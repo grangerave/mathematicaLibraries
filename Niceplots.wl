@@ -35,5 +35,24 @@ colorGradient[colorList_,pts_?NumericQ]:=Table[Blend[colorList,u/(pts-1)],{u,0,p
 Crayola[name_]:=ColorData["Crayola"][name]
 cray[name_]:=ColorData["Crayola"][name]
 
+Options[plotGrid]={ImagePadding->40};
+plotGrid[l_List,w_,h_,opts:OptionsPattern[]]:=Module[{nx,ny,sidePadding=OptionValue[plotGrid,ImagePadding],topPadding=0,widths,heights,dimensions,positions,frameOptions=FilterRules[{opts},FilterRules[Options[Graphics],Except[{ImagePadding,Frame,FrameTicks}]]]},{ny,nx}=Dimensions[l];
+widths=(w-2 sidePadding)/nx Table[1,{nx}];
+widths[[1]]=widths[[1]]+sidePadding;
+widths[[-1]]=widths[[-1]]+sidePadding;
+heights=(h-2 sidePadding)/ny Table[1,{ny}];
+heights[[1]]=heights[[1]]+sidePadding;
+heights[[-1]]=heights[[-1]]+sidePadding;
+positions=Transpose@Partition[Tuples[Prepend[Accumulate[Most[#]],0]&/@{widths,heights}],ny];
+Graphics[Table[Inset[Show[l[[ny-j+1,i]],ImagePadding->{{If[i==1,sidePadding,0],If[i==nx,sidePadding,0]},{If[j==1,sidePadding,0],If[j==ny,sidePadding,topPadding]}},AspectRatio->Full],positions[[j,i]],{Left,Bottom},{widths[[i]],heights[[j]]}],{i,1,nx},{j,1,ny}],PlotRange->{{0,w},{0,h}},ImageSize->{w,h},Evaluate@Apply[Sequence,frameOptions]]]
+
+ClearAll[rasterizeBackground]
+Options[rasterizeBackground]={"TransparentBackground"->False,Antialiasing->False};
+rasterizeBackground[g_Graphics,rs_Integer:3000,OptionsPattern[]]:=Module[{raster,plotrange,rect},{raster,plotrange}=Reap[First@Rasterize[Show[g,Epilog->{},Prolog->{},PlotRangePadding->0,ImagePadding->0,ImageMargins->0,PlotLabel->None,FrameTicks->None,Frame->None,Axes->None,Ticks->None,PlotRangeClipping->False,Antialiasing->OptionValue[Antialiasing],GridLines->{Function[Sow[{##},"X"];None],Function[Sow[{##},"Y"];None]}],"Graphics",ImageSize->rs,Background->Replace[OptionValue["TransparentBackground"],{True->None,False->Automatic}]],_,#1->#2[[1]]&];
+rect=Transpose[{"X","Y"}/. plotrange];
+Graphics[raster/. Raster[data_,_,rest__]:>Raster[data,rect,rest],Options[g]]]
+
+rasterizeBackground[g_,rs_Integer:3000,OptionsPattern[]]:=g/. gr_Graphics:>rasterizeBackground[gr,rs]
+
 EndPackage[]
 
