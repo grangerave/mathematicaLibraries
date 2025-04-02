@@ -95,8 +95,8 @@ model["ParameterTable"],TableForm[{{minPt[[1]]},{Qest},{Qist},{0.0},{A0est}},Tab
 NLMfitS11dcLogmagQuiet[localdata_,overCoupled_:True] := Module[{A0est,minPt,\[Sigma],Qest,Qist,weights,model},
 (*Fit direct-coupled resonance measurement to reflection data in tuples of {freq, Subscript[S, 21](dB)}*)
 A0est = Mean[{First[localdata] [[2]],Last[localdata][[2]]}];
-minPt = Last @ SortBy[ localdata,#[[2]]&];
-\[Sigma] = 2(Select[localdata,#[[2]]>Min[A0est + 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
+minPt = First @ SortBy[ localdata,#[[2]]&];
+\[Sigma] = 2(Select[localdata,#[[2]]<Max[A0est - 3,Mean[{A0est,minPt[[2]]}]]&]\[Transpose][[1]]//InterquartileRange);
 Qest =minPt[[1]]/\[Sigma];
 Qist = If[overCoupled,Qest ((1 + 10^((-A0est+minPt[[2]])/20))/(1 - 10^((-A0est+minPt[[2]])/20))),Qest ((1 - 10^((-A0est+minPt[[2]])/20))/(1 + 10^((-A0est+minPt[[2]])/20)))];
 model = NonlinearModelFit[localdata,10Log10[Abs[1-(2 Qi)/(Qe E^(-I \[Phi]) + Qi +2I Qe E^(-I \[Phi]) Qi (\[Nu]-\[Nu]0)/\[Nu]0)]^2],{{\[Nu]0,minPt[[1]]},{Qe,Qest},{Qi,Qist},{\[Phi],0.0},{A0,A0est}},\[Nu],Weights->(1+E^(-(#-minPt[[1]])^2/(2 \[Sigma]^2))&)];
